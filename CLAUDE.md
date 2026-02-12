@@ -6,6 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Book recommendation systems — an early-stage Python project exploring AI agents for book recommendations.
 
+## References
+Project documentation is contained in /documentation
+
+- `documentation/spec.md`: project specification
+
 ## Commands
 
 - **Run an agent:** `uv run python src/agents/base.py`

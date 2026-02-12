@@ -11,3 +11,6 @@ wheels/
 
 # Secret files
 .env
+
+# User-specific files
+logs/
