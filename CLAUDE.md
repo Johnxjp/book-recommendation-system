@@ -7,9 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Book recommendation systems — an early-stage Python project exploring AI agents for book recommendations.
 
 ## References
-Project documentation is contained in /documentation
+Project plans is contained in /scratchpad
 
-- `documentation/spec.md`: project specification
+- `scratchpad/spec.md`: project specification
 
 ## Commands
 
