@@ -15,7 +15,7 @@ class SimpleAgent:
         base_url: str | None = None,
         model: str = "openrouter:nvidia/nemotron-3-nano-30b-a3b:free",
         system_prompt: str | None = None,
-        max_iterations: int = 5,
+        max_iterations: int = 10,
         tools: list[dict] | None = None,
         tool_handlers: dict | None = None,
     ):
@@ -43,15 +43,32 @@ class SimpleAgent:
         self.context.append({"role": "user", "content": query})
         output = ""
         turns = 0
+        max_retry = 2
 
         while turns < self.max_iterations:
             api_kwargs = {"messages": self.context, "model": self.model}
             if self.tools:
                 api_kwargs["tools"] = self.tools
 
-            result = self.client.chat.completions.create(**api_kwargs)
-            finish_reason = result.choices[0].finish_reason
-            message = result.choices[0].message
+            retry_count = 0
+            while retry_count < max_retry:
+                result = self.client.chat.completions.create(**api_kwargs)
+                finish_reason = result.choices[0].finish_reason
+                message = result.choices[0].message
+                if finish_reason == "stop" and message.content is None and not message.tool_calls:
+                    print(
+                        f"Warning: model returned empty response, retrying ({retry_count + 1}/{max_retry})..."
+                    )
+                    retry_count += 1
+                    continue
+                break
+
+            if retry_count >= max_retry:
+                output = (
+                    "I'm sorry, I wasn't able to generate a response. Could you try rephrasing?"
+                )
+                self.context.append({"role": "assistant", "content": output})
+                break
 
             if finish_reason == "stop":
                 output = message.content
@@ -59,6 +76,7 @@ class SimpleAgent:
                 break
 
             elif finish_reason == "length":
+                # TODO: Handle by retrying
                 output = message.content
                 self.context.append({"role": "assistant", "content": output})
                 print("Warning: response truncated due to max token limit.")
@@ -80,11 +98,16 @@ class SimpleAgent:
                         except Exception as e:
                             tool_result = json.dumps({"error": f"{type(e).__name__}: {e}"})
 
-                    self.context.append({
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "content": tool_result,
-                    })
+                    if not isinstance(tool_result, str):
+                        tool_result = json.dumps(tool_result)
+
+                    self.context.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "content": tool_result,
+                        }
+                    )
 
             turns += 1
 

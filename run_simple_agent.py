@@ -9,7 +9,8 @@ from dotenv import load_dotenv
 from src.agents.simple import SimpleAgent
 from src.db import get_connection
 from src.prompts.base import prompt
-from src.tools.user_reading_history import user_history_tools, make_handlers
+from src.tools.user_reading_history import user_history_tools_schema, make_handlers
+from src.tools.web_tools import web_tools_schema, web_extract_tool, web_search_tool
 from src.utils import fetch_openrouter_models
 
 load_dotenv()
@@ -43,22 +44,24 @@ def main():
                 print(f"Error fetching OpenRouter models: {e}")
                 raise
 
+        tools = user_history_tools_schema + web_tools_schema
         conn = get_connection("data/books.db")
         tool_handlers = make_handlers(conn)
-
+        tool_handlers["web_search_tool"] = web_search_tool
+        tool_handlers["web_extract_tool"] = web_extract_tool
         agent = SimpleAgent(
             api_key=api_key,
             base_url=base_url,
             model=model,
             system_prompt=prompt,
             max_iterations=5,
-            tools=user_history_tools,
+            tools=tools,
             tool_handlers=tool_handlers,
         )
         print("Agent initialized successfully with the following configuration:")
         print(f"Model: {model}")
-        print(f"System Prompt: {prompt}")
-        print(f"Tools: {[t['function']['name'] for t in user_history_tools]}")
+        # print(f"System Prompt: {prompt}")
+        print(f"Tools: {[t['function']['name'] for t in tools]}")
 
     except Exception as e:
         print(f"Error initializing agent: {e}")
@@ -69,14 +72,15 @@ def main():
         "timestamp": datetime.now().isoformat(),
         "model": model,
         "system_prompt": prompt,
-        "tools": [t["function"]["name"] for t in user_history_tools],
+        "tools": [t["function"]["name"] for t in tools],
         "conversation": [],
     }
-    turn = 0
 
+    # CLI
     print("Book Recommendation Agent")
     print("Type 'quit' to exit.\n")
 
+    turn = 0
     try:
         while True:
             user_input = input("You: ").strip()

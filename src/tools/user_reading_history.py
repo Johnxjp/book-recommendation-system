@@ -11,7 +11,7 @@ import sqlite3
 from src.db import get_user_books, get_book
 
 
-user_history_tools = [
+user_history_tools_schema = [
     {
         "type": "function",
         "function": {
@@ -82,14 +82,16 @@ def make_handlers(conn: sqlite3.Connection) -> dict:
         try:
             books = get_user_books(conn, shelf=shelf)
             if response_format == "concise":
-                return json.dumps([
-                    {
-                        "title": b.book.title,
-                        "authors": b.book.authors,
-                        "shelf": b.shelf,
-                    }
-                    for b in books
-                ])
+                return json.dumps(
+                    [
+                        {
+                            "title": b.book.title,
+                            "authors": b.book.authors,
+                            "shelf": b.shelf,
+                        }
+                        for b in books
+                    ]
+                )
             return json.dumps([b.model_dump() for b in books])
         except Exception as e:
             return json.dumps({"error": f"{type(e).__name__}: {e}"})
