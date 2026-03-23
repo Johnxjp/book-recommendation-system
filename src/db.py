@@ -6,6 +6,7 @@ from src.models import Book, Shelf, UserBook
 
 
 def get_connection(db_path: str | Path) -> sqlite3.Connection:
+    """Check tables exist"""
     db_path = Path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path)
@@ -16,7 +17,8 @@ def get_connection(db_path: str | Path) -> sqlite3.Connection:
 
 
 def init_db(conn: sqlite3.Connection) -> None:
-    conn.executescript("""
+    conn.executescript(
+        """
         CREATE TABLE IF NOT EXISTS books (
             goodreads_id INTEGER PRIMARY KEY,
             title TEXT NOT NULL,
@@ -37,7 +39,8 @@ def init_db(conn: sqlite3.Connection) -> None:
             CHECK (my_rating BETWEEN 1 AND 5 OR my_rating IS NULL),
             CHECK (shelf IN ('read', 'to-read', 'is-reading', 'did-not-finish'))
         );
-    """)
+    """
+    )
 
 
 def upsert_user_book(conn: sqlite3.Connection, ub: UserBook) -> None:
