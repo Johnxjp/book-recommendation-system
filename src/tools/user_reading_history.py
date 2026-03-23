@@ -18,7 +18,11 @@ user_history_tools = [
             "name": "get_reading_history",
             "description": (
                 "Look up the user's reading history, optionally filtered by shelf. "
-                "Returns a list of books with title, authors, rating, shelf, and dates."
+                "Use 'concise' format (default) to scan the full library efficiently — "
+                "returns title, authors, genres, shelf, and rating only. "
+                "Use 'detailed' format when you need full metadata for a smaller set — "
+                "returns all fields including genres, pages, year published, ISBN, "
+                "publisher, and dates."
             ),
             "parameters": {
                 "type": "object",
@@ -27,7 +31,17 @@ user_history_tools = [
                         "type": "string",
                         "enum": ["read", "to-read", "is-reading", "did-not-finish"],
                         "description": "Filter by shelf. Omit to get all books.",
-                    }
+                    },
+                    "response_format": {
+                        "type": "string",
+                        "enum": ["concise", "detailed"],
+                        "description": (
+                            "Controls response detail level. "
+                            "'concise': title, authors, shelf"
+                            "'detailed': all fields including genres, rating, pages, "
+                            "year published, ISBN, publisher, dates."
+                        ),
+                    },
                 },
                 "required": [],
             },
@@ -60,10 +74,22 @@ user_history_tools = [
 def make_handlers(conn: sqlite3.Connection) -> dict:
     """Return {name: callable} with the db connection baked in via closures."""
 
-    def get_reading_history(shelf: str | None = None) -> str:
-        """Return simple view of user's reading history, optionally filtered by shelf."""
+    def get_reading_history(
+        shelf: str | None = None,
+        response_format: str = "concise",
+    ) -> str:
+        """Return user's reading history, optionally filtered by shelf and detail level."""
         try:
             books = get_user_books(conn, shelf=shelf)
+            if response_format == "concise":
+                return json.dumps([
+                    {
+                        "title": b.book.title,
+                        "authors": b.book.authors,
+                        "shelf": b.shelf,
+                    }
+                    for b in books
+                ])
             return json.dumps([b.model_dump() for b in books])
         except Exception as e:
             return json.dumps({"error": f"{type(e).__name__}: {e}"})

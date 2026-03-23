@@ -1,4 +1,7 @@
+import logfire
 from openai import OpenAI
+
+logfire.configure()
 
 
 def create_openai_client(
@@ -10,5 +13,7 @@ def create_openai_client(
     Creates a chat completion client using OpenAI SDK.
     This supports OpenRouter models or OpenAI models depending on the base_url provided.
     """
-    return OpenAI(api_key=api_key, base_url=base_url, timeout=timeout)
+    client = OpenAI(api_key=api_key, base_url=base_url, timeout=timeout)
+    logfire.instrument_openai(client)
+    return client
 
