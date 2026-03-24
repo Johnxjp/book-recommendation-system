@@ -13,7 +13,8 @@ Project plans is contained in /scratchpad
 
 ## Commands
 
-- **Run an agent:** `uv run python src/agents/base.py`
+- **Run OpenRouter agent:** `uv run python run_simple_agent.py`
+- **Run Anthropic agent:** `uv run python run_anthropic_agent.py`
 - **Add a dependency:** `uv add <package>`
 - **Sync dependencies:** `uv sync`
 
@@ -25,7 +26,9 @@ Always check `pyproject.toml` for existing packages before attempting to install
 ## Architecture
 
 - **Python 3.12**, managed with **uv** (see `uv.lock`)
-- Agent framework: **Pydantic AI** (`pydantic-ai-slim[openrouter]`) — use `OpenRouterModel` + `OpenRouterProvider` for model setup
-- All LLM calls route through **OpenRouter** using `OPENROUTER_API_KEY` from `.env`
-- Agent definitions live in `src/agents/`
+- Two LLM backends:
+  - **OpenAI SDK** via OpenRouter (`OPENROUTER_API_KEY`, `BASE_URL`, `AGENT_MODEL`)
+  - **Anthropic SDK** direct (`ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`)
+- Agent definitions live in `src/agents/` — `SimpleAgent` (OpenAI) and `AnthropicAgent` (Anthropic)
+- Tool schemas defined in OpenAI format in `src/tools/`; `AnthropicAgent` auto-converts at init
 - Environment variables loaded via `python-dotenv`; see `.env.example` for required keys

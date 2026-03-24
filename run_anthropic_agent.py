@@ -6,12 +6,11 @@ import uuid
 
 from dotenv import load_dotenv
 
-from src.agents.simple import SimpleAgent
+from src.agents.anthropic_agent import AnthropicAgent
 from src.db import get_connection
 from src.prompts.base import prompt
 from src.tools.user_reading_history import user_history_tools_schema, make_handlers
 from src.tools.web_tools import web_tools_schema, web_extract_tool, web_search_tool
-from src.utils import fetch_openrouter_models
 
 load_dotenv()
 
@@ -22,38 +21,28 @@ def save_log(log: dict):
     LOGS_DIR.mkdir(exist_ok=True)
     filepath = LOGS_DIR / f"{log['session_id']}.json"
     with open(filepath, "w") as f:
-        json.dump(log, f, indent=4)
+        json.dump(log, f, indent=4, default=str)
     print(f"Session log saved to {filepath}")
 
 
 def main():
     try:
-        model = os.getenv("AGENT_MODEL") or "nvidia/nemotron-3-nano-30b-a3b:free"
-        base_url = os.getenv("BASE_URL") or None
-        api_key = os.getenv("OPENROUTER_API_KEY") or None
+        model = os.getenv("ANTHROPIC_MODEL") or "claude-sonnet-4-20250514"
+        api_key = os.getenv("ANTHROPIC_API_KEY") or None
 
-        print(f"Using base URL: {base_url}")
+        if not api_key:
+            print("Error: ANTHROPIC_API_KEY not set in environment.")
+            return
+
         print(f"Using model: {model}")
-        if "openrouter" in base_url:
-            try:
-                available_models = fetch_openrouter_models(
-                    api_key=api_key, base_url=base_url
-                )
-                if model not in available_models:
-                    print(f"Model '{model}' not found in OpenRouter. Available models:")
-                    return
-            except Exception as e:
-                print(f"Error fetching OpenRouter models: {e}")
-                raise
 
         tools = user_history_tools_schema + web_tools_schema
         conn = get_connection("data/books.db")
         tool_handlers = make_handlers(conn)
         tool_handlers["web_search_tool"] = web_search_tool
         tool_handlers["web_extract_tool"] = web_extract_tool
-        agent = SimpleAgent(
+        agent = AnthropicAgent(
             api_key=api_key,
-            base_url=base_url,
             model=model,
             system_prompt=prompt,
             max_iterations=5,
@@ -62,7 +51,6 @@ def main():
         )
         print("Agent initialized successfully with the following configuration:")
         print(f"Model: {model}")
-        # print(f"System Prompt: {prompt}")
         print(f"Tools: {[t['function']['name'] for t in tools]}")
 
     except Exception as e:
@@ -79,7 +67,7 @@ def main():
     }
 
     # CLI
-    print("Book Recommendation Agent")
+    print("Book Recommendation Agent (Anthropic)")
     print("Type 'quit' to exit.\n")
 
     turn = 0
