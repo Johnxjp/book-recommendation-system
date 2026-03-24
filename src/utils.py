@@ -10,6 +10,21 @@ def isbn10_to_13(isbn10: str) -> str:
     return prefix + str(check)
 
 
+def isbn13_to_isbn10(isbn13: str) -> str:
+    """Convert an ISBN-13 to ISBN-10 if it starts with 978, by stripping the prefix and recalculating the check digit."""
+    digits = isbn13.replace("-", "").replace(" ", "")
+
+    if len(digits) != 13 or not digits.startswith("978"):
+        raise ValueError("Must be a valid 978-prefix ISBN-13")
+
+    nine = digits[3:12]
+    total = sum((i + 1) * int(d) for i, d in enumerate(nine))
+    check = total % 11
+    check_char = "X" if check == 10 else str(check)
+
+    return nine + check_char
+
+
 def fetch_openrouter_models(api_key: str, base_url: str) -> list[str]:
     """Fetch available models from OpenRouter API."""
     headers = {"Authorization": f"Bearer {api_key}"}
