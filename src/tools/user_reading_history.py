@@ -8,7 +8,7 @@ The handlers are created via make_handlers() which bakes in the db connection.
 import json
 import sqlite3
 
-from src.db import get_user_books, get_book
+from src.db import get_reference_book, get_user_book_by_goodreads_id, get_user_books
 
 
 user_history_tools_schema = [
@@ -37,7 +37,7 @@ user_history_tools_schema = [
                         "enum": ["concise", "detailed"],
                         "description": (
                             "Controls response detail level. "
-                            "'concise': title, authors, shelf"
+                            "'concise': title, authors, shelf "
                             "'detailed': all fields including genres, rating, pages, "
                             "year published, ISBN, publisher, dates."
                         ),
@@ -54,7 +54,8 @@ user_history_tools_schema = [
             "description": (
                 "Get full details for a specific book by its Goodreads ID. "
                 "Includes title, authors, ISBN, publisher, genres, pages, year published, "
-                "the user's rating, shelf, and dates."
+                "the user's rating, shelf, and dates. If the book is linked to the "
+                "reference catalog, also includes cover image URL and description."
             ),
             "parameters": {
                 "type": "object",
@@ -85,9 +86,11 @@ def make_handlers(conn: sqlite3.Connection) -> dict:
                 return json.dumps(
                     [
                         {
-                            "title": b.book.title,
-                            "authors": b.book.authors,
+                            "title": b.title,
+                            "authors": b.authors,
+                            "genres": b.genres,
                             "shelf": b.shelf,
+                            "my_rating": b.my_rating,
                         }
                         for b in books
                     ]
@@ -99,10 +102,22 @@ def make_handlers(conn: sqlite3.Connection) -> dict:
     def get_book_details(goodreads_id: int) -> str:
         """Return full details for a specific book by its Goodreads ID."""
         try:
-            book = get_book(conn, goodreads_id)
-            if book:
-                return book.model_dump_json()
-            return json.dumps({"error": "Book not found"})
+            ub = get_user_book_by_goodreads_id(conn, goodreads_id)
+            if not ub:
+                return json.dumps({"error": "Book not found"})
+
+            result = ub.model_dump()
+
+            # Enrich with reference catalog data if linked
+            if ub.book_id:
+                ref = get_reference_book(conn, ub.book_id)
+                if ref:
+                    result["cover_image_url"] = ref.cover_url()
+                    result["description"] = ref.description or ub.description
+                    result["genres"] = ref.genres or ub.genres
+                    result["average_rating"] = ref.rating
+
+            return json.dumps(result)
         except Exception as e:
             return json.dumps({"error": f"{type(e).__name__}: {e}"})
 

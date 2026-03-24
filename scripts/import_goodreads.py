@@ -40,6 +40,13 @@ def main() -> None:
     for row in counts:
         print(f"  {row['shelf']}: {row['n']}")
 
+    total = conn.execute("SELECT COUNT(*) FROM user_books").fetchone()[0]
+    matched = conn.execute(
+        "SELECT COUNT(*) FROM user_books WHERE book_id IS NOT NULL"
+    ).fetchone()[0]
+    print(f"\nMatching: {matched}/{total} linked to reference catalog")
+    print(f"Unmatched: {total - matched} (enrichment queue)")
+
     print(f"Imported to {db_path}")
     conn.close()
 
