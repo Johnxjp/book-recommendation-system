@@ -6,6 +6,8 @@ Supports tool calling with the same tool schemas as SimpleAgent (auto-converted 
 import json
 
 from src.agents.anthropic_client import create_anthropic_client
+from src.agents.topic_relevancy import classify_query
+from src.message_templates import REFUSAL_TEMPLATES
 
 
 def _convert_openai_tools_to_anthropic(tools: list[dict]) -> list[dict]:
@@ -51,14 +53,24 @@ class AnthropicAgent:
         self.system_prompt = system_prompt or ""
         self.max_iterations = max_iterations
         self.tools = tools
-        self.anthropic_tools = (
-            _convert_openai_tools_to_anthropic(tools) if tools else []
-        )
+        self.anthropic_tools = _convert_openai_tools_to_anthropic(tools) if tools else []
         self.tool_handlers = tool_handlers or {}
 
     def run(self, query: str) -> str:
         """Run the agent loop. Returns the final assistant text response."""
+
         self.context.append({"role": "user", "content": query})
+        query_classification = classify_query(query, self.context[1:])  # Exclude system prompt from context for classification
+        if not query_classification.get("allowed", True):
+            reason = query_classification.get("reason", "unknown reason")
+            print(f"Query classified as not allowed: {reason}")
+            if len(self.context) > 2:
+                refusal = REFUSAL_TEMPLATES["topic_drift"]
+            else:
+                refusal = REFUSAL_TEMPLATES["off_topic"]
+            self.context.append({"role": "assistant", "content": refusal})
+            return refusal
+
         output = ""
         turns = 0
         max_retry = 2
@@ -79,11 +91,7 @@ class AnthropicAgent:
                 # Check for empty response (no content blocks or all empty)
                 text_blocks = [b for b in result.content if b.type == "text"]
                 tool_blocks = [b for b in result.content if b.type == "tool_use"]
-                if (
-                    result.stop_reason == "end_turn"
-                    and not text_blocks
-                    and not tool_blocks
-                ):
+                if result.stop_reason == "end_turn" and not text_blocks and not tool_blocks:
                     print(
                         f"Warning: model returned empty response, retrying ({retry_count + 1}/{max_retry})..."
                     )
@@ -92,7 +100,9 @@ class AnthropicAgent:
                 break
 
             if retry_count >= max_retry:
-                output = "I'm sorry, I wasn't able to generate a response. Could you try rephrasing?"
+                output = (
+                    "I'm sorry, I wasn't able to generate a response. Could you try rephrasing?"
+                )
                 self.context.append({"role": "assistant", "content": output})
                 break
 
@@ -123,9 +133,7 @@ class AnthropicAgent:
                         try:
                             tool_result = self.tool_handlers[name](**args)
                         except Exception as e:
-                            tool_result = json.dumps(
-                                {"error": f"{type(e).__name__}: {e}"}
-                            )
+                            tool_result = json.dumps({"error": f"{type(e).__name__}: {e}"})
 
                     if not isinstance(tool_result, str):
                         tool_result = json.dumps(tool_result)

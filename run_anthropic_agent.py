@@ -29,6 +29,7 @@ def main():
     try:
         model = os.getenv("ANTHROPIC_MODEL") or "claude-sonnet-4-20250514"
         api_key = os.getenv("ANTHROPIC_API_KEY") or None
+        db_path = os.getenv("DB_PATH") or "data/books.db"
 
         if not api_key:
             print("Error: ANTHROPIC_API_KEY not set in environment.")
@@ -37,7 +38,7 @@ def main():
         print(f"Using model: {model}")
 
         tools = user_history_tools_schema + web_tools_schema
-        conn = get_connection("data/books.db")
+        conn = get_connection(db_path)
         tool_handlers = make_handlers(conn)
         tool_handlers["web_search_tool"] = web_search_tool
         tool_handlers["web_extract_tool"] = web_extract_tool
@@ -45,7 +46,7 @@ def main():
             api_key=api_key,
             model=model,
             system_prompt=prompt,
-            max_iterations=5,
+            max_iterations=10,
             tools=tools,
             tool_handlers=tool_handlers,
         )
