@@ -13,7 +13,7 @@ class Shelf(StrEnum):
 class Book(BaseModel):
     """Canonical reference book from the catalog."""
 
-    id: int | None = None
+    id: str | None = None  # UUID
     title: str
     authors: list[str]
     isbn: str | None = None
@@ -41,7 +41,7 @@ class UserBook(BaseModel):
     """A book in the user's personal library."""
 
     id: int | None = None
-    book_id: int | None = None  # FK to books.id, NULL if unmatched
+    book_id: str | None = None  # FK to books.id (UUID), NULL if unmatched
     goodreads_id: int | None = None
     title: str
     authors: list[str]

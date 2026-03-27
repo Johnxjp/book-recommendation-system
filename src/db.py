@@ -1,5 +1,6 @@
 import json
 import sqlite3
+import uuid
 from pathlib import Path
 
 from src.models import Book, Shelf, UserBook
@@ -20,7 +21,7 @@ def init_db(conn: sqlite3.Connection) -> None:
     conn.executescript(
         """
         CREATE TABLE IF NOT EXISTS books (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id TEXT PRIMARY KEY,             -- UUID
             title TEXT NOT NULL,
             authors TEXT NOT NULL,           -- JSON list
             isbn TEXT,                       -- ISBN-10
@@ -43,7 +44,7 @@ def init_db(conn: sqlite3.Connection) -> None:
 
         CREATE TABLE IF NOT EXISTS user_books (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            book_id INTEGER REFERENCES books(id),  -- NULL if unmatched
+            book_id TEXT REFERENCES books(id),     -- NULL if unmatched (UUID)
             goodreads_id INTEGER,                  -- original Goodreads ID from import
             title TEXT NOT NULL,
             authors TEXT NOT NULL,                 -- JSON list
@@ -76,6 +77,7 @@ def bulk_insert_books(conn: sqlite3.Connection, books: list[Book]) -> int:
     """Insert reference books in bulk. Returns number inserted."""
     rows = [
         (
+            b.id or str(uuid.uuid4()),
             b.title,
             json.dumps(b.authors),
             b.isbn,
@@ -94,10 +96,10 @@ def bulk_insert_books(conn: sqlite3.Connection, books: list[Book]) -> int:
     ]
     conn.executemany(
         """
-        INSERT INTO books (title, authors, isbn, isbn13, description, genres, pages,
+        INSERT INTO books (id, title, authors, isbn, isbn13, description, genres, pages,
                            rating, total_ratings, book_format, goodreads_url,
                            goodreads_id, cover_image_url)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         rows,
     )
@@ -264,8 +266,8 @@ def _find_reference_book(
     conn: sqlite3.Connection,
     isbn: str | None = None,
     goodreads_id: int | None = None,
-) -> int | None:
-    """Find a reference book by ISBN or goodreads_id. Returns books.id or None."""
+) -> str | None:
+    """Find a reference book by ISBN or goodreads_id. Returns books.id (UUID) or None."""
     if isbn:
         row = conn.execute(
             "SELECT id FROM books WHERE isbn13 = ? OR isbn = ?", (isbn, isbn)
