@@ -43,7 +43,7 @@ def init_db(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_books_popularity ON books(total_ratings DESC);
 
         CREATE TABLE IF NOT EXISTS user_books (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id TEXT PRIMARY KEY,                   -- UUID
             book_id TEXT REFERENCES books(id),     -- NULL if unmatched (UUID)
             goodreads_id INTEGER,                  -- original Goodreads ID from import
             title TEXT NOT NULL,
@@ -167,12 +167,13 @@ def upsert_user_book(conn: sqlite3.Connection, ub: UserBook) -> None:
             if not genres and ref["genres"]:
                 genres = json.loads(ref["genres"])
 
+    user_book_id = ub.id or str(uuid.uuid4())
     conn.execute(
         """
-        INSERT INTO user_books (book_id, goodreads_id, title, authors, isbn,
+        INSERT INTO user_books (id, book_id, goodreads_id, title, authors, isbn,
                                 description, genres, publisher, pages, year_published,
                                 shelf, my_rating, date_added, date_read)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
             book_id=excluded.book_id,
             title=excluded.title,
@@ -189,6 +190,7 @@ def upsert_user_book(conn: sqlite3.Connection, ub: UserBook) -> None:
             date_read=excluded.date_read
         """,
         (
+            user_book_id,
             book_id,
             ub.goodreads_id,
             ub.title,
@@ -220,7 +222,7 @@ def get_user_books(
     return [_row_to_user_book(row) for row in rows]
 
 
-def get_user_book(conn: sqlite3.Connection, user_book_id: int) -> UserBook | None:
+def get_user_book(conn: sqlite3.Connection, user_book_id: str) -> UserBook | None:
     """Get a single user book by its ID."""
     row = conn.execute(
         "SELECT * FROM user_books WHERE id = ?", (user_book_id,)

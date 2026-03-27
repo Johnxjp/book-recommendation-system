@@ -40,7 +40,7 @@ class Book(BaseModel):
 class UserBook(BaseModel):
     """A book in the user's personal library."""
 
-    id: int | None = None
+    id: str | None = None  # UUID
     book_id: str | None = None  # FK to books.id (UUID), NULL if unmatched
     goodreads_id: int | None = None
     title: str
