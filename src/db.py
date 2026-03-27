@@ -10,7 +10,7 @@ def get_connection(db_path: str | Path) -> sqlite3.Connection:
     """Open a connection to the SQLite database."""
     db_path = Path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
@@ -125,7 +125,7 @@ def search_books(conn: sqlite3.Connection, query: str, limit: int = 20) -> list[
 
 def _row_to_book(row: sqlite3.Row) -> Book:
     return Book(
-        id=row["id"],
+        id=str(row["id"]) if row["id"] is not None else None,
         title=row["title"],
         authors=json.loads(row["authors"]),
         isbn=row["isbn"],
