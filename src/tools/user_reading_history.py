@@ -8,7 +8,7 @@ The handlers are created via make_handlers() which bakes in the db connection.
 import json
 import sqlite3
 
-from src.db import get_user_books, get_book
+from src.db import get_user_book_by_goodreads_id, get_user_books
 
 
 user_history_tools_schema = [
@@ -85,9 +85,11 @@ def make_handlers(conn: sqlite3.Connection) -> dict:
                 return json.dumps(
                     [
                         {
-                            "title": b.book.title,
-                            "authors": b.book.authors,
+                            "title": b.title,
+                            "authors": b.authors,
+                            "genres": b.genres,
                             "shelf": b.shelf,
+                            "my_rating": b.my_rating,
                         }
                         for b in books
                     ]
@@ -99,7 +101,7 @@ def make_handlers(conn: sqlite3.Connection) -> dict:
     def get_book_details(goodreads_id: int) -> str:
         """Return full details for a specific book by its Goodreads ID."""
         try:
-            book = get_book(conn, goodreads_id)
+            book = get_user_book_by_goodreads_id(conn, goodreads_id)
             if book:
                 return book.model_dump_json()
             return json.dumps({"error": "Book not found"})

@@ -7,8 +7,8 @@ If uncertain, err on the side of allowing the query to avoid false positives.
 You will be given the user's current message and the conversation history for context.
 
 Output format:
-- ok: {"allowed": true, "reason": "optional explanation for why it's allowed"}
-- refuse: {"allowed": false, "reason": "brief explanation of why it's not allowed"}
+- {"allowed": true, "reason": "optional explanation for why it's allowed"}
+- {"allowed": false, "reason": "brief explanation of why it's not allowed"}
 
 Only output JSON in the specified format, without any additional commentary or text.
 
