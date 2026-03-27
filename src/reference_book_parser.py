@@ -1,7 +1,8 @@
 """Parser for the GoodReads 100K books CSV dataset.
 
 Handles quirks in the dataset:
-- isbn13 in scientific notation (9.78E+12) -> zero-padded 13-char string
+- isbn13 field is in scientific notation (9.78E+12) which loses precision — unusable.
+  Instead, derive isbn13 from isbn10 using the converter.
 - authors as comma-separated within quotes
 - genres as comma-separated with possible '...' truncation
 - goodreads_id extracted from link field (/book/show/1001053.Title -> 1001053)
@@ -12,20 +13,22 @@ import csv
 import re
 
 from src.models import Book
+from src.utils import isbn10_to_13
 
 
 def _parse_isbn13(raw: str) -> str | None:
-    """Convert isbn13 from possible scientific notation to zero-padded 13-char string."""
+    """Parse isbn13 field. Returns None if scientific notation (precision lost)."""
     raw = raw.strip()
     if not raw:
         return None
-    try:
-        value = int(float(raw))
-        if value == 0:
-            return None
-        return str(value).zfill(13)
-    except (ValueError, OverflowError):
+    # Scientific notation like 9.78E+12 loses precision — discard
+    if "E" in raw.upper() or "." in raw:
         return None
+    # Only accept if it's already a full 13-digit string
+    digits = raw.strip()
+    if len(digits) == 13 and digits.isdigit():
+        return digits
+    return None
 
 
 def _parse_isbn(raw: str) -> str | None:
@@ -86,6 +89,12 @@ def parse_reference_books(csv_path: str) -> list[Book]:
         for row in csv.DictReader(f):
             isbn13 = _parse_isbn13(row.get("isbn13", ""))
             isbn = _parse_isbn(row.get("isbn", ""))
+            # Derive isbn13 from isbn10 when the CSV field is unusable
+            if not isbn13 and isbn and len(isbn) == 10:
+                try:
+                    isbn13 = isbn10_to_13(isbn)
+                except Exception:
+                    pass
             goodreads_id = _parse_goodreads_id(row.get("link", ""))
             pages = _parse_int(row.get("pages", ""))
             rating = _parse_float(row.get("rating", ""))

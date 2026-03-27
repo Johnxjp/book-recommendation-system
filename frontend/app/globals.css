@@ -1,0 +1,36 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap");
+@import "tailwindcss";
+
+:root {
+  --color-cream: #fff8f0;
+  --color-warm-white: #fefcf8;
+  --color-sage: #7c9070;
+  --color-sage-light: #a8bfa0;
+  --color-gold: #c4a44e;
+  --color-gold-light: #e8d89c;
+  --color-earth: #8b7355;
+  --color-earth-light: #d4c4a8;
+  --color-charcoal: #2d2d2d;
+  --color-stone: #6b6b6b;
+}
+
+@theme inline {
+  --color-cream: var(--color-cream);
+  --color-warm-white: var(--color-warm-white);
+  --color-sage: var(--color-sage);
+  --color-sage-light: var(--color-sage-light);
+  --color-gold: var(--color-gold);
+  --color-gold-light: var(--color-gold-light);
+  --color-earth: var(--color-earth);
+  --color-earth-light: var(--color-earth-light);
+  --color-charcoal: var(--color-charcoal);
+  --color-stone: var(--color-stone);
+  --font-serif: "DM Serif Display", serif;
+  --font-sans: "DM Sans", sans-serif;
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-charcoal);
+  font-family: var(--font-sans);
+}

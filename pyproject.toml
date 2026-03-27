@@ -6,10 +6,13 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "anthropic>=0.86.0",
+    "fastapi>=0.135.2",
     "firecrawl-py>=4.19.0",
     "logfire>=4.22.0",
     "openai>=2.29.0",
     "python-dotenv>=1.2.1",
+    "sse-starlette>=3.3.3",
+    "uvicorn>=0.42.0",
 ]
 
 [dependency-groups]

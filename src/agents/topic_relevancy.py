@@ -55,6 +55,8 @@ def _format_context(context: list[dict]) -> str:
     formatted = []
     for turn in context:
         role = turn["role"]
-        content = turn["content"]
+        content = turn.get("content")
+        if content is None:
+            continue
         formatted.append(f"{role.upper()}: {content}")
     return "\n".join(formatted)

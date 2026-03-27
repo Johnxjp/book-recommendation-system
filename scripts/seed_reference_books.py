@@ -24,14 +24,14 @@ def main() -> None:
     books = parse_reference_books(CSV_PATH)
     print(f"Parsed {len(books)} books")
 
-    # Deduplicate by isbn13 first, then isbn, then goodreads_id
+    # Deduplicate by goodreads_id (most reliable), then isbn13, then isbn
     seen: set[str] = set()
     unique_books = []
     for book in books:
         key = (
-            book.isbn13
+            (str(book.goodreads_id) if book.goodreads_id else None)
+            or book.isbn13
             or book.isbn
-            or (str(book.goodreads_id) if book.goodreads_id else None)
         )
         if key and key in seen:
             continue
