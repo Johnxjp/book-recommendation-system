@@ -36,9 +36,7 @@ def main():
         print(f"Using model: {model}")
         if "openrouter" in base_url:
             try:
-                available_models = fetch_openrouter_models(
-                    api_key=api_key, base_url=base_url
-                )
+                available_models = fetch_openrouter_models(api_key=api_key, base_url=base_url)
                 if model not in available_models:
                     print(f"Model '{model}' not found in OpenRouter. Available models:")
                     return

@@ -6,6 +6,8 @@ Supports tool calling via OpenAI-compatible API.
 import json
 
 from src.agents.openai_client import create_openai_client
+from src.agents.topic_relevancy import classify_query
+from src.message_templates import REFUSAL_TEMPLATES
 
 
 class SimpleAgent:
@@ -41,6 +43,21 @@ class SimpleAgent:
     def run(self, query: str) -> str:
         """Run the agent loop. Returns the final assistant text response."""
         self.context.append({"role": "user", "content": query})
+
+        query_classification = classify_query(
+            query, self.context[1:]
+        )  # Exclude system prompt from context for classification
+        print(query_classification, query_classification.get("allowed", True))
+        if not query_classification.get("allowed", True):
+            reason = query_classification.get("reason", "unknown reason")
+            print(f"Query classified as not allowed: {reason}")
+            if len(self.context) > 2:
+                refusal = REFUSAL_TEMPLATES["topic_drift"]
+            else:
+                refusal = REFUSAL_TEMPLATES["off_topic"]
+            self.context.append({"role": "assistant", "content": refusal})
+            return refusal
+
         output = ""
         turns = 0
         max_retry = 2

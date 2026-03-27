@@ -1,6 +1,6 @@
 import csv
 
-from src.models import Book, UserBook
+from src.models import UserBook
 from src.utils import isbn10_to_13
 
 
@@ -33,32 +33,29 @@ def parse_goodreads(csv_path: str) -> list[UserBook]:
         for row in csv.DictReader(f):
             authors = [row["Author"]]
             if row.get("Additional Authors", "").strip():
-                authors.extend(a.strip() for a in row["Additional Authors"].split(",") if a.strip())
+                authors.extend(
+                    a.strip() for a in row["Additional Authors"].split(",") if a.strip()
+                )
 
             rating = int(row["My Rating"])
             pages = row.get("Number of Pages", "").strip()
             year = row.get("Year Published", "").strip()
             raw_shelf = row.get("Exclusive Shelf", "").strip()
-            shelf = {"currently-reading": "is-reading"}.get(raw_shelf, raw_shelf) or "read"
+            shelf = {"currently-reading": "is-reading"}.get(
+                raw_shelf, raw_shelf
+            ) or "read"
             publisher = row.get("Publisher", "").strip() or None
-
-            # TODO: book matching — resolve goodreads_id against external APIs
-            #       to fetch genres and richer metadata during import
-            # TODO: background metadata search — queue books with missing
-            #       genres/pages/year for async enrichment after initial import
 
             books.append(
                 UserBook(
-                    book=Book(
-                        goodreads_id=int(row["Book Id"]),
-                        title=row["Title"],
-                        authors=authors,
-                        isbn=_resolve_isbn(row),
-                        publisher=publisher,
-                        genres=None,  # not in Goodreads export; needs enrichment
-                        pages=int(pages) if pages else None,
-                        year_published=int(year) if year else None,
-                    ),
+                    goodreads_id=int(row["Book Id"]),
+                    title=row["Title"],
+                    authors=authors,
+                    isbn=_resolve_isbn(row),
+                    publisher=publisher,
+                    genres=None,
+                    pages=int(pages) if pages else None,
+                    year_published=int(year) if year else None,
                     shelf=shelf,
                     my_rating=rating if rating > 0 else None,
                     date_added=_to_iso_date(row.get("Date Added", "")),
